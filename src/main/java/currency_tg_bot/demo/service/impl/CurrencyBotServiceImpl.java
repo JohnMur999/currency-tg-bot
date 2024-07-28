@@ -2,6 +2,7 @@ package currency_tg_bot.demo.service.impl;
 
 import currency_tg_bot.demo.client.CBRClient;
 import currency_tg_bot.demo.exception.ServiceException;
+import currency_tg_bot.demo.service.CoinMarketCapService;
 import currency_tg_bot.demo.service.CurrencyBotService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -9,10 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.xml.sax.InputSource;
 import org.w3c.dom.Document;
-
-import currency_tg_bot.demo.client.CBRClient;
-import currency_tg_bot.demo.exception.ServiceException;
-import currency_tg_bot.demo.service.CurrencyBotService;
 
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
@@ -31,6 +28,9 @@ public class CurrencyBotServiceImpl implements CurrencyBotService {
     @Autowired
     private CBRClient client;
 
+    @Autowired
+    private CoinMarketCapService coinMarketCapService;
+
     public CurrencyBotServiceImpl(CBRClient client) {
         this.client = client;
     }
@@ -39,7 +39,7 @@ public class CurrencyBotServiceImpl implements CurrencyBotService {
     public String getUSDExchangeRate() throws ServiceException {
         Optional<String> xmlOptional = Optional.ofNullable(client.getCurrencyRatesXML());
         String xml = xmlOptional.orElseThrow(
-                () -> new ServiceException()
+                ServiceException::new
         );
         return extractCurrencyValuesFromXML(xml, USD_XPATH);
     }
@@ -48,6 +48,11 @@ public class CurrencyBotServiceImpl implements CurrencyBotService {
     public String getEURExchangeRate() throws ServiceException {
         var xml = client.getCurrencyRatesXML();
         return extractCurrencyValuesFromXML(xml, EUR_XPATH);
+    }
+
+    @Override
+    public String getCryptoPrice(String cryptoTokenName) throws ServiceException {
+        return coinMarketCapService.getCryptoPrice(cryptoTokenName);
     }
 
     private static String extractCurrencyValuesFromXML(String xml, String xpathExpression) throws ServiceException {
