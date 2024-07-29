@@ -1,11 +1,11 @@
 package currency_tg_bot.demo.service;
 
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 
 import java.util.HashMap;
 import java.util.Map;
 
-@Component
+@Service
 public class UserStateService {
     private final Map<Long, String> userStates = new HashMap<>();
 

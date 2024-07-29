@@ -19,25 +19,21 @@ import java.util.Optional;
 
 @Service
 public class CurrencyBotServiceImpl implements CurrencyBotService {
-
-    private static final Logger LOG = LoggerFactory.getLogger(CurrencyBotServiceImpl.class);
-
     private static final String USD_XPATH = "/ValCurs//Valute[@ID='R01235']/Value";
     private static final String EUR_XPATH = "/ValCurs//Valute[@ID='R01239']/Value";
 
-    @Autowired
-    private CBRClient client;
+    private final CBRClient cbrClient;
+    private final CoinMarketCapService coinMarketCapService;
 
     @Autowired
-    private CoinMarketCapService coinMarketCapService;
-
-    public CurrencyBotServiceImpl(CBRClient client) {
-        this.client = client;
+    public CurrencyBotServiceImpl(CBRClient client, CoinMarketCapService coinMarketCapService) {
+        this.cbrClient = client;
+        this.coinMarketCapService = coinMarketCapService;
     }
 
     @Override
     public String getUSDExchangeRate() throws ServiceException {
-        Optional<String> xmlOptional = Optional.ofNullable(client.getCurrencyRatesXML());
+        Optional<String> xmlOptional = Optional.ofNullable(cbrClient.getCurrencyRatesXML());
         String xml = xmlOptional.orElseThrow(
                 ServiceException::new
         );
@@ -46,7 +42,7 @@ public class CurrencyBotServiceImpl implements CurrencyBotService {
 
     @Override
     public String getEURExchangeRate() throws ServiceException {
-        var xml = client.getCurrencyRatesXML();
+        var xml = cbrClient.getCurrencyRatesXML();
         return extractCurrencyValuesFromXML(xml, EUR_XPATH);
     }
 

@@ -13,6 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 import org.telegram.telegrambots.bots.DefaultBotOptions;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -92,20 +93,20 @@ public class CurrencyBot extends TelegramLongPollingBot {
                 В боте доступны следующие команды:
                 
                 📊 Актуальные валютные курсы:
-                /usd - доллара США;
-                /eur - евро;
-                /findcrypto - курс криптовалюты;
+                /usd - доллара США
+                /eur - евро
+                /findcrypto - курс криптовалюты
                 
                 📈📉 Валютная сводка:
-                /today - узнать актуальные цены основных валют;
+                /today - узнать актуальные цены основных валют
                 
                 📆 Подписки:
-                /sub - подписаться на ежедневную рассылку;
-                /changesubtime - изменить время рассылки;
-                /unsub - отписаться от рассылки;
+                /sub - подписаться на ежедневную рассылку
+                /changesubtime - изменить время рассылки
+                /unsub - отписаться от рассылки
                 
                 🆘 Помощь с командами:
-                /help - справка. </b>
+                /help - показать все команды</b>
                 """;
         var formattedMessageForUser = String.format(messageForUser, username);
         sendMessage(chatId, formattedMessageForUser);
@@ -136,11 +137,11 @@ public class CurrencyBot extends TelegramLongPollingBot {
             subscribedUsers.setChatId(chatId);
             subscribedUsers.setUsername(username);
             subscribedUsersRepo.save(subscribedUsers);
-            String subMessage = "<b> Вы успешно подписались на рассылку! Осталось лишь выбрать время для полечения рассылки." +
+            String subMessage = "<b>Вы успешно подписались на рассылку! Осталось лишь выбрать время для полечения рассылки." +
                     "\n\nИспользуйте /changesubtime </b>";
             sendMessage(chatId,subMessage);
         } else {
-            String message = "<b> Вы уже подписаны на рассылку </b>";
+            String message = "<b>Вы уже подписаны на рассылку </b>";
             sendMessage(chatId,message);
         }
     }
@@ -166,7 +167,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
                         time, hoursUntilNextNotification, remainingMinutes);
                 sendMessage(chatId, message);
             } else {
-                String message = "<b> Вы не подписаны на рассылку </b>";
+                String message = "<b>Вы не подписаны на рассылку </b>";
                 sendMessage(chatId,message);
             }
         } catch (NumberFormatException | DateTimeParseException e) {
@@ -179,11 +180,11 @@ public class CurrencyBot extends TelegramLongPollingBot {
 
     private void unsubscribeCommand(Long chatId, String username) {
         if (!subscribedUsersRepo.existsByChatId(chatId)) {
-            String message = "<b> Вы не подписаны на рассылку </b>";
+            String message = "<b>Вы не подписаны на рассылку </b>";
             sendMessage(chatId,message);
         } else {
             subscribedUsersRepo.deleteByChatId(chatId);
-            String message = "<b> Вы успешно отписались от рассылки </b>";
+            String message = "<b>Вы успешно отписались от рассылки </b>";
             sendMessage(chatId,message);
         }
     }
@@ -193,10 +194,11 @@ public class CurrencyBot extends TelegramLongPollingBot {
         String formattedMessageForUser;
         try {
             var eur = currencyBotService.getEURExchangeRate();
-            var message = "<b> $USD = ₽%s | \uD83D\uDCC5: %s| via ЦБ РФ </b>";
+            var message = "<b>$USD = ₽%s | \uD83D\uDCC5: %s| via ЦБ РФ </b>";
             formattedMessageForUser = String.format(message, eur, LocalDate.now());
         } catch (ServiceException e) {
             LOG.error(e.getMessage());
+            sendMessage(chatId,"<b>ЦБ РФ сервис для получения цены в данный момент недоступен, попробуйте позже.</b>");
             throw new RuntimeException(e);
         }
         sendMessage(chatId, formattedMessageForUser);
@@ -207,10 +209,11 @@ public class CurrencyBot extends TelegramLongPollingBot {
         String formattedMessageForUser;
         try {
             var usd = currencyBotService.getUSDExchangeRate();
-            var message = "<b> $EUR = ₽%s | \uD83D\uDCC5: %s | via ЦБ РФ </b>";
+            var message = "<b>$EUR = ₽%s | \uD83D\uDCC5: %s | via ЦБ РФ </b>";
             formattedMessageForUser = String.format(message, usd, LocalDate.now());
         } catch (ServiceException e) {
             LOG.error(e.getMessage());
+            sendMessage(chatId,"<b>ЦБ РФ сервис для получения цены в данный момент недоступен, попробуйте позже.</b>");
             throw new RuntimeException(e);
         }
         sendMessage(chatId, formattedMessageForUser);
@@ -225,7 +228,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
     private void sendCryptoOptions(Long chatId) {
         SendMessage message = new SendMessage();
         message.setChatId(chatId);
-        message.setText("<b> <u> Введите</u> или <u>выберите</u> уникальный модификатор монеты (BTC,ETH,NEAR...): </b>");
+        message.setText("<b><u>Введите</u> или <u>выберите</u> уникальный модификатор монеты (BTC,ETH,NEAR...): </b>");
         message.setParseMode("HTML");
 
         InlineKeyboardMarkup markupInline = new InlineKeyboardMarkup();
@@ -237,6 +240,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
         try {
             execute(message);
         } catch (TelegramApiException e) {
+            sendMessage(chatId,"<b>Проблемы с CMC Api. Попробуйте позже.</b>");
             e.printStackTrace();
         }
     }
@@ -277,7 +281,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
         String formattedMessageForUser;
         try {
             var cryptoToken = currencyBotService.getCryptoPrice(cryptoName);
-            var message = "<b> $%s = $ %s | \uD83D\uDCC5: %s | CoinMarketCap </b>";
+            var message = "<b>$%s = $ %s | \uD83D\uDCC5: %s | CoinMarketCap </b>";
             formattedMessageForUser = String.format(message, cryptoName,
                     extractPriceFromCryptoResponse(cryptoToken, cryptoName),
                     LocalDate.now());
@@ -309,20 +313,20 @@ public class CurrencyBot extends TelegramLongPollingBot {
     private void helpCommand(Long chatId, String username) {
         LOG.info("{} used HELP command in chat {}", username, chatId);
         var message = """
-                <b>Доступные команды:
+               <b>Доступные команды:
                📊 Актуальные валютные курсы:
-                /usd - доллара США;
-                /eur - евро;
-                /findcrypto - курс криптовалюты;
-                
-                📈📉 Валютная сводка:
-                /today - узнать актуальные цены основных валют;
-                
-                📆 Подписки:
-                /sub - подписаться на ежедневную рассылку;
-                /changesubtime - изменить время рассылки;
-                /unsub - отписаться от рассылки;
-                </b>""";
+               /usd - доллара США
+               /eur - евро
+               /findcrypto - курс криптовалюты
+               
+               📈📉 Валютная сводка:
+               /today - узнать актуальные цены основных валют
+               
+               📆 Подписки:
+               /sub - подписаться на ежедневную рассылку
+               /changesubtime - изменить время рассылки
+               /unsub - отписаться от рассылки
+               </b>""";
         sendMessage(chatId, message);
     }
 
@@ -369,7 +373,7 @@ public class CurrencyBot extends TelegramLongPollingBot {
                             String currentSubTime = "<b>Текущее время подписки: </b>" + subscribedUsersRepo.findByChatId(chatId).getNotificationTime().toString();
                             sendMessage(chatId, currentSubTime);
                         }
-                        String subMessage = "<b> Введите время для получения рассылки [HH:MM (00:00 - 23:59)] </b>";
+                        String subMessage = "<b>Введите время для получения рассылки [HH:MM (00:00 - 23:59)] </b>";
                         sendMessage(chatId, subMessage);
                         userStateService.setUserState(chatId, "AWAITING_SUB_TIME");;
                     }
